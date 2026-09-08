@@ -6,7 +6,7 @@ type Phase = 'intro' | 'playing' | 'hit' | 'entering' | 'done';
 type ObstacleKind = 'mushroom-red' | 'mushroom-purple' | 'mushroom-gold' | 'mushroom-toxic' | 'mushroom-cluster';
 type Obstacle = { x: number; width: number; height: number; kind: ObstacleKind; label: string };
 type Collectible = { x: number; height: number; label: string; high?: boolean };
-type AudioKit = { ctx: AudioContext; master: GainNode; musicTimer: number | null; musicStep: number };
+type AudioKit = { ctx: AudioContext; master: GainNode; musicTimer: number | null; musicStep: number; activeVoices: Set<OscillatorNode>; unlocked: boolean };
 type ModelContext = { registerTool: (tool: { name: string; title: string; description: string; inputSchema: object; annotations: { readOnlyHint: boolean; untrustedContentHint: boolean }; execute: () => unknown }, options?: { signal?: AbortSignal }) => void | Promise<void> };
 
 const WORLD_END = 3570;
@@ -201,10 +201,16 @@ export default function Home() {
     const kit = audioRef.current; if (!kit) return;
     const start = kit.ctx.currentTime + delay; const oscillator = kit.ctx.createOscillator(); const gain = kit.ctx.createGain();
     oscillator.type = type; oscillator.frequency.setValueAtTime(frequency, start); gain.gain.setValueAtTime(volume, start); gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
-    oscillator.connect(gain); gain.connect(kit.master); oscillator.start(start); oscillator.stop(start + duration);
+    oscillator.connect(gain); gain.connect(kit.master); kit.activeVoices.add(oscillator);
+    oscillator.onended = () => { kit.activeVoices.delete(oscillator); oscillator.disconnect(); gain.disconnect(); };
+    oscillator.start(start); oscillator.stop(start + duration);
   }, []);
 
   const stopMusic = useCallback(() => { const kit = audioRef.current; if (kit?.musicTimer !== null && kit?.musicTimer !== undefined) { window.clearInterval(kit.musicTimer); kit.musicTimer = null; } }, []);
+  const stopVoices = useCallback(() => {
+    const kit = audioRef.current; if (!kit) return;
+    kit.activeVoices.forEach((voice) => { try { voice.stop(); } catch { /* already stopped */ } }); kit.activeVoices.clear();
+  }, []);
   const startMusic = useCallback(() => {
     const kit = audioRef.current; if (!kit || kit.musicTimer !== null) return;
     const melody = [294, 370, 440, 370, 330, 392, 494, 392, 262, 330, 392, 523, 494, 392, 330, 247];
@@ -221,14 +227,21 @@ export default function Home() {
     beat(); kit.musicTimer = window.setInterval(beat, 145);
   }, [tone]);
 
-  const initAudio = useCallback(() => {
+  const unlockAudio = useCallback(() => {
     if (!audioRef.current || audioRef.current.ctx.state === 'closed') {
       const AudioConstructor = window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioConstructor) return;
+      if (!AudioConstructor) return Promise.resolve(false);
       const ctx = new AudioConstructor(); const master = ctx.createGain(); master.gain.value = .62; master.connect(ctx.destination);
-      audioRef.current = { ctx, master, musicTimer: null, musicStep: 0 };
+      audioRef.current = { ctx, master, musicTimer: null, musicStep: 0, activeVoices: new Set(), unlocked: false };
     }
-    void audioRef.current.ctx.resume().catch(() => undefined);
+    const kit = audioRef.current;
+    if (!kit.unlocked) {
+      const silentBuffer = kit.ctx.createBuffer(1, 1, kit.ctx.sampleRate);
+      const silentSource = kit.ctx.createBufferSource(); silentSource.buffer = silentBuffer; silentSource.connect(kit.master); silentSource.onended = () => silentSource.disconnect(); silentSource.start(0); silentSource.stop(0);
+      kit.unlocked = true;
+    }
+    const resumed = kit.ctx.state === 'running' ? Promise.resolve() : kit.ctx.resume();
+    return resumed.then(() => kit.ctx.state === 'running').catch(() => false);
   }, []);
 
   const playSfx = useCallback((kind: 'jump' | 'double' | 'bottle' | 'fail' | 'enter') => {
@@ -242,30 +255,33 @@ export default function Home() {
   const showMessage = useCallback((text: string, duration = .82) => { setMessage(text); messageTimerRef.current = duration; }, []);
   const setGamePhase = useCallback((next: Phase) => { phaseRef.current = next; phaseTimeRef.current = 0; setPhase(next); }, []);
   const startGame = useCallback(() => {
-    initAudio(); pausedRef.current = false; setPaused(false); worldXRef.current = 0; jumpYRef.current = 0; velocityRef.current = 0; jumpsRef.current = 0; supportRef.current = 'ground'; collectedRef.current = new Set(); pickupFxRef.current = null;
-    setBottles(0); setMessage(''); messageTimerRef.current = 0; setGamePhase('playing'); startMusic();
-  }, [initAudio, setGamePhase, startMusic]);
+    const audioReady = unlockAudio(); stopMusic(); stopVoices(); pausedRef.current = false; setPaused(false); worldXRef.current = 0; jumpYRef.current = 0; velocityRef.current = 0; jumpsRef.current = 0; supportRef.current = 'ground'; collectedRef.current = new Set(); pickupFxRef.current = null;
+    setBottles(0); setMessage(''); messageTimerRef.current = 0; setGamePhase('playing');
+    void audioReady.then((ready) => { if (ready && phaseRef.current !== 'done' && !pausedRef.current) startMusic(); });
+  }, [setGamePhase, startMusic, stopMusic, stopVoices, unlockAudio]);
 
   const jump = useCallback(() => {
     if (phaseRef.current !== 'playing' || pausedRef.current) return;
+    const kit = audioRef.current;
+    if (kit && kit.ctx.state !== 'running') void kit.ctx.resume().then(startMusic).catch(() => undefined);
     if (supportRef.current !== null) {
       velocityRef.current = JUMP_POWER; jumpsRef.current = 1; supportRef.current = null; playSfx('jump');
     } else if (jumpsRef.current === 1) {
       velocityRef.current = DOUBLE_JUMP_POWER; jumpsRef.current = 2; playSfx('double'); showMessage('DOPPIO STAPPO!', .5);
     }
-  }, [playSfx, showMessage]);
+  }, [playSfx, showMessage, startMusic]);
 
   const togglePause = useCallback(() => {
     if (phaseRef.current === 'intro' || phaseRef.current === 'done') return;
     const next = !pausedRef.current; pausedRef.current = next; setPaused(next);
     const kit = audioRef.current;
-    if (next) { stopMusic(); if (kit) void kit.ctx.suspend(); }
+    if (next) { stopMusic(); stopVoices(); if (kit) void kit.ctx.suspend(); }
     else { if (kit) void kit.ctx.resume().then(startMusic).catch(() => undefined); }
-  }, [startMusic, stopMusic]);
+  }, [startMusic, stopMusic, stopVoices]);
 
   useEffect(() => {
-    const image = new Image(); image.src = '/wine-world.png'; image.onload = () => { imageRef.current = image; };
-    const dog = new Image(); dog.src = '/dog-8bit.png'; dog.onload = () => { dogRef.current = dog; };
+    const image = new Image(); image.src = './wine-world.png'; image.onload = () => { imageRef.current = image; };
+    const dog = new Image(); dog.src = './dog-8bit.png'; dog.onload = () => { dogRef.current = dog; };
     const canvas = canvasRef.current; if (!canvas) return;
     const resize = () => {
       const box = canvas.parentElement?.getBoundingClientRect() ?? canvas.getBoundingClientRect();
@@ -284,6 +300,15 @@ export default function Home() {
     };
     window.addEventListener('keydown', onKeyDown, { passive: false }); return () => window.removeEventListener('keydown', onKeyDown);
   }, [jump, togglePause]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden) { stopMusic(); stopVoices(); return; }
+      const kit = audioRef.current;
+      if (kit?.ctx.state === 'running' && phaseRef.current === 'playing' && !pausedRef.current) startMusic();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange); return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [startMusic, stopMusic, stopVoices]);
 
   useEffect(() => {
     const context = (document as Document & { modelContext?: ModelContext }).modelContext; if (!context?.registerTool) return;
@@ -363,13 +388,14 @@ export default function Home() {
   }, [playSfx, setGamePhase, showMessage, startGame, stopMusic]);
 
   useEffect(() => () => {
-    stopMusic();
+    stopMusic(); stopVoices();
     const kit = audioRef.current;
     audioRef.current = null;
     if (kit && kit.ctx.state !== 'closed') void kit.ctx.close().catch(() => undefined);
-  }, [stopMusic]);
+  }, [stopMusic, stopVoices]);
 
   const handleGamePointer = (event: React.PointerEvent<HTMLDivElement>) => { if (!event.isPrimary || (event.target as HTMLElement).closest('a, button')) return; event.preventDefault(); jump(); };
+  const handleJumpPointer = (event: React.PointerEvent<HTMLButtonElement>) => { if (!event.isPrimary) return; event.preventDefault(); event.stopPropagation(); jump(); };
   const mapsUrl = 'https://www.google.com/maps/search/?api=1&query=Via+Giuseppe+Giacosa+11+20127+Milano+MI';
 
   return (
@@ -378,15 +404,14 @@ export default function Home() {
         <canvas ref={canvasRef} className="game-canvas" aria-label="Corri verso La Botte Fatale, salta gli ostacoli e raccogli cinque bottiglie" />
         {phase !== 'done' && <header className="hud">
           <div className="hud-brand"><span>LA NOTTE DI LINA</span><strong>LA BOTTE FATALE</strong></div>
-          <button className="pause-button" type="button" aria-pressed={paused} onClick={togglePause}>{paused ? 'RIPRENDI' : 'PAUSA'} <kbd>P</kbd></button>
           <div className="hud-bottles" aria-label={`${bottles} bottiglie raccolte su 5`}><span>LA CANTINETTA · {bottles}/5</span><div>{[0,1,2,3,4].map((index) => <i key={index} className={index < bottles ? 'full' : ''}><b /><em /></i>)}</div></div>
         </header>}
         <div className={`game-message ${message ? 'visible' : ''}`} role="status" aria-live="polite"><span>{message}</span>{message === '+1 BOTTIGLIA' && <i className="pickup-icon"><b /><em /></i>}</div>
         {paused && <div className="pause-layer"><div><span>LA NOTTE È SOSPESA</span><strong>PAUSA</strong><small>RIPRENDI DALLO STESSO PUNTO</small></div></div>}
-        {phase === 'intro' && <div className="start-layer"><div className="title-lockup"><div className="title-rule"><i /> <span>UNA NOTTE · CINQUE BOTTIGLIE</span> <i /></div><PixelSign className="intro-sign" /><p>Porta Lina fino all’ultima luce della città.</p><button type="button" onClick={startGame}>STAPPA LA NOTTE <span>→</span></button><small>TAP · CLICK · SPAZIO · DUE VOLTE PER IL DOPPIO SALTO</small></div></div>}
-        {phase === 'playing' && <div className="jump-prompt" aria-hidden="true">SALTO / DOPPIO SALTO <b>↑↑</b></div>}
+        {phase === 'intro' && <div className="start-layer"><div className="title-lockup"><div className="title-rule"><i /> <span>UNA NOTTE · CINQUE BOTTIGLIE</span> <i /></div><PixelSign className="intro-sign" /><p>Porta Lina fino all’ultima luce della città.</p><button type="button" onPointerDown={() => { void unlockAudio(); }} onClick={startGame}>STAPPA LA NOTTE <span>→</span></button><small>TAP · CLICK · SPAZIO · DUE VOLTE PER IL DOPPIO SALTO</small></div></div>}
+        {(phase === 'playing' || paused) && <div className="game-controls"><button className="pause-button" type="button" aria-pressed={paused} onClick={togglePause}>{paused ? 'RIPRENDI' : 'PAUSA'} <kbd>P</kbd></button><button className="jump-button" type="button" onPointerDown={handleJumpPointer} onClick={(event) => { if (event.detail === 0) jump(); }} aria-label="Salto; premi due volte per il doppio salto">SALTO <b>↑↑</b></button></div>}
         {phase === 'done' && <div className="final-layer">
-          <div className="final-marquee"><p>LA PORTA ERA QUELLA GIUSTA</p><PixelSign className="final-sign" /><strong>Vino, bottiglie e incontri fatali.</strong><div className="final-character-row"><div className="final-score"><span>BOTTIGLIE TROVATE · {bottles}/5</span><div className="score-bottles" aria-label={`${bottles} bottiglie raccolte su 5`}>{[0,1,2,3,4].map((index) => <i key={index} className={index < bottles ? 'full' : ''}><b /><em /></i>)}</div></div><img className="enoteca-dog" src="/dog-8bit.png" alt="Il cane della Botte Fatale con gli occhiali da sole" /></div></div>
+          <div className="final-marquee"><p>LA PORTA ERA QUELLA GIUSTA</p><PixelSign className="final-sign" /><strong>Vino, bottiglie e incontri fatali.</strong><div className="final-character-row"><div className="final-score"><span>BOTTIGLIE TROVATE · {bottles}/5</span><div className="score-bottles" aria-label={`${bottles} bottiglie raccolte su 5`}>{[0,1,2,3,4].map((index) => <i key={index} className={index < bottles ? 'full' : ''}><b /><em /></i>)}</div></div><img className="enoteca-dog" src="./dog-8bit.png" alt="Il cane della Botte Fatale con gli occhiali da sole" /></div></div>
           <div className="bar-info">
             <a className="bar-note address" href={mapsUrl} target="_blank" rel="noreferrer"><span>DOVE TROVARCI</span><b>Via Giuseppe Giacosa, 11<br />20127 Milano MI</b></a>
             <div className="bar-note hours"><span>LUCI ACCESE</span><ul className="hours-list"><li><i>Monday</i><b>16:00–23:00</b></li><li><i>Tuesday</i><b>16:00–23:00</b></li><li><i>Wednesday</i><b>16:00–23:00</b></li><li><i>Thursday</i><b>16:00–23:00</b></li><li><i>Friday</i><b>17:00–23:00</b></li><li><i>Saturday</i><b>17:00–23:00</b></li><li><i>Sunday</i><b>Closed</b></li></ul></div>

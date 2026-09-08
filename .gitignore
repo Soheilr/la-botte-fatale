@@ -28,6 +28,7 @@ yarn-error.log*
 
 # local environment
 .env*
+!.env.example
 
 # deployment and generated files
 .vercel
@@ -39,3 +40,6 @@ next-env.d.ts
 /exports/
 /.pnpm-store/
 /.tmpbin/
+
+# local duplicate drafts
+app/* 2.*

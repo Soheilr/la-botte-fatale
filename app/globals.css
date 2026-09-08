@@ -11,7 +11,7 @@ button { color:inherit; }
 .game-screen::before { content:""; position:absolute; inset:0; z-index:8; pointer-events:none; background-image:repeating-linear-gradient(0deg,rgba(16,7,10,.18) 0 1px,transparent 1px 4px); mix-blend-mode:multiply; }
 .game-canvas { position:absolute; top:50%; left:50%; display:block; max-width:none; max-height:none; transform:translate(-50%,-50%); image-rendering:pixelated; image-rendering:crisp-edges; }
 
-.hud { position:absolute; z-index:40; top:14px; left:14px; right:14px; display:grid; grid-template-columns:1fr auto 1fr; align-items:start; gap:16px; pointer-events:none; text-shadow:3px 3px 0 var(--ink); }
+.hud { position:absolute; z-index:40; top:14px; left:14px; right:14px; display:grid; grid-template-columns:1fr auto; align-items:start; gap:16px; pointer-events:none; text-shadow:3px 3px 0 var(--ink); }
 .hud-brand { display:grid; gap:3px; }
 .hud-brand span,.hud-bottles>span { font-size:12px; font-weight:900; letter-spacing:.14em; }
 .hud-brand strong { font-size:clamp(15px,2vw,22px); letter-spacing:.06em; }
@@ -25,9 +25,12 @@ button { color:inherit; }
 .hud-bottles i.full { background:var(--green); box-shadow:0 0 0 2px var(--cream),2px 2px 0 2px var(--ink); }
 .hud-bottles i.full::before { background:var(--cream); }
 .hud-bottles i.full::after { background:var(--cream); border-top:2px solid var(--ink); border-bottom:2px solid var(--ink); }
-.pause-button { pointer-events:auto; min-width:108px; min-height:44px; padding:6px 10px; border:4px solid var(--ink); background:var(--cream); color:var(--ink); font-size:13px; font-weight:900; letter-spacing:.08em; box-shadow:4px 4px 0 var(--ink); cursor:pointer; text-shadow:none; }
+.game-controls { position:absolute; z-index:40; right:calc(15px + env(safe-area-inset-right)); bottom:calc(16px + env(safe-area-inset-bottom)); display:flex; align-items:stretch; gap:12px; pointer-events:auto; }
+.pause-button,.jump-button { min-width:118px; min-height:50px; padding:7px 12px; border:4px solid var(--ink); background:var(--cream); color:var(--ink); font-size:13px; font-weight:900; letter-spacing:.08em; box-shadow:4px 4px 0 var(--ink); cursor:pointer; text-shadow:none; touch-action:manipulation; }
 .pause-button kbd { margin-left:8px; padding:1px 4px; border:2px solid currentColor; background:transparent; font:inherit; }
-.pause-button:hover,.pause-button:focus-visible,.pause-button[aria-pressed="true"] { background:var(--wine); color:var(--cream); outline:3px solid var(--cream); outline-offset:2px; }
+.jump-button b { color:var(--wine); font-size:18px; }
+.pause-button:hover,.pause-button:focus-visible,.pause-button[aria-pressed="true"],.jump-button:hover,.jump-button:focus-visible,.jump-button:active { background:var(--wine); color:var(--cream); outline:3px solid var(--cream); outline-offset:2px; }
+.jump-button:hover b,.jump-button:focus-visible b,.jump-button:active b { color:var(--gold); }
 
 .start-layer,.final-layer { position:absolute; inset:0; z-index:7; display:grid; place-items:center; padding:76px 18px 22px; background:rgba(16,7,10,.58); }
 .title-lockup { width:min(720px,100%); text-align:center; }
@@ -49,8 +52,6 @@ button { color:inherit; }
 .pickup-icon::before { content:""; position:absolute; left:3px; top:-11px; width:7px; height:10px; border:3px solid var(--ink); border-bottom:0; background:var(--cream); }
 .pickup-icon b { position:absolute; display:block; left:2px; right:2px; top:10px; height:8px; background:var(--cream); border-top:2px solid var(--ink); border-bottom:2px solid var(--ink); }
 .pickup-icon em { display:none; }
-.jump-prompt { position:absolute; z-index:6; right:15px; bottom:16px; padding:8px 10px; border:3px solid var(--ink); background:var(--cream); color:var(--ink); font-size:12px; font-weight:900; box-shadow:4px 4px 0 var(--ink); pointer-events:none; }
-.jump-prompt b { color:var(--wine); font-size:18px; }
 .pause-layer { position:absolute; inset:0; z-index:30; display:grid; place-items:center; padding:20px; background:rgba(16,7,10,.68); cursor:default; }
 .pause-layer>div { display:grid; min-width:min(420px,92vw); padding:22px 28px; border:6px solid var(--ink); outline:4px solid var(--cream); outline-offset:-10px; background:var(--wine); text-align:center; box-shadow:10px 10px 0 var(--ink); }
 .pause-layer span,.pause-layer small { font-size:12px; font-weight:900; letter-spacing:.12em; }
@@ -113,7 +114,8 @@ a.bar-note:hover span,a.bar-note:focus-visible span { color:var(--gold); }
   .hud-bottles div { gap:4px; }
   .hud-bottles i { width:12px; height:18px; border-width:2px; }
   .hud-bottles i::before { width:6px; height:6px; left:1px; top:-8px; border-width:2px; }
-  .pause-button { grid-column:2; grid-row:1; min-width:104px; min-height:44px; padding:7px 9px; font-size:12px; }
+  .game-controls { right:calc(9px + env(safe-area-inset-right)); bottom:calc(10px + env(safe-area-inset-bottom)); gap:10px; }
+  .pause-button,.jump-button { min-width:104px; min-height:48px; padding:7px 9px; font-size:12px; }
   .pause-button kbd { display:none; }
   .start-layer { padding:66px 16px 18px; }
   .title-rule i { width:26px; }
@@ -136,7 +138,6 @@ a.bar-note:hover span,a.bar-note:focus-visible span { color:var(--gold); }
   .bar-note b { font-size:14px; }
   .bar-actions { grid-column:auto; flex-direction:column; gap:10px; width:100%; }
   .enter-button { min-height:48px; font-size:14px; }
-  .jump-prompt { right:9px; bottom:9px; }
 }
 
 @media (min-width:761px) and (max-width:900px) and (orientation:portrait) {
@@ -174,7 +175,7 @@ a.bar-note:hover span,a.bar-note:focus-visible span { color:var(--gold); }
   .title-lockup>p { grid-area:copy; width:100%; margin:0; font-size:15px; }
   .title-lockup button { grid-area:action; width:100%; min-height:46px; margin:0; }
   .title-lockup small { grid-area:help; font-size:11px; }
-  .jump-prompt { right:9px; bottom:8px; padding:6px 8px; }
+  .game-controls { right:calc(9px + env(safe-area-inset-right)); bottom:calc(9px + env(safe-area-inset-bottom)); }
   .pause-layer>div { padding:14px 24px; }
   .pause-layer strong { font-size:58px; }
   .final-layer { grid-template-columns:290px minmax(0,500px); grid-template-rows:1fr auto; gap:8px 12px; padding:10px 12px 12px; }
