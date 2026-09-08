@@ -141,12 +141,19 @@ function drawMilestone(ctx: CanvasRenderingContext2D, x: number, ground: number,
   }
 }
 
-function drawDoor(ctx: CanvasRenderingContext2D, x: number, ground: number, opening: number, t: number) {
+function drawDoor(ctx: CanvasRenderingContext2D, x: number, ground: number, opening: number, t: number, dogImage: HTMLImageElement | null) {
   const w = 148; const h = 145; const y = ground - h; const pulse = Math.floor(t * 4) % 2;
   rect(ctx, x - 10, y + 20, w + 20, h - 20, COLORS.black); rect(ctx, x - 5, y + 25, w + 10, h - 25, COLORS.burgundy);
   rect(ctx, x, y, w, 47, COLORS.black); drawPixelBrandSign(ctx, x + 5, y + 4, w - 10, 38, pulse === 1);
   for (let i = 0; i < 10; i++) rect(ctx, x + 8 + i * 14, y + 45, 6, 6, (i + pulse) % 2 === 0 ? COLORS.cream : COLORS.red);
-  rect(ctx, x + 21, y + 57, 106, 88, COLORS.black); rect(ctx, x + 27, y + 63, 94, 76, COLORS.gold);
+  rect(ctx, x + 21, y + 57, 106, 88, COLORS.black); rect(ctx, x + 27, y + 63, 94, 76, COLORS.burgundy);
+  if (dogImage && opening > 0) {
+    const reveal = Math.min(1, opening * 1.45); const welcomeBob = Math.floor(t * 5) % 2;
+    ctx.save(); ctx.globalAlpha = reveal;
+    rect(ctx, x + 46, y + 75, 56, 60, COLORS.gold); rect(ctx, x + 50, y + 79, 48, 56, COLORS.black);
+    ctx.drawImage(dogImage, x + 47, ground - 66 - welcomeBob, 58, 62);
+    ctx.restore();
+  }
   const panel = Math.max(0, 44 - Math.floor(opening * 44)); rect(ctx, x + 27, y + 63, panel, 76, COLORS.green); rect(ctx, x + 77 + (44 - panel), y + 63, panel, 76, COLORS.green);
   rect(ctx, x + 72, y + 96, 4, 4, COLORS.cream); drawBottle(ctx, x - 2, y + 78, 1.3); drawBottle(ctx, x + w - 15, y + 78, 1.3);
   drawSparkle(ctx, x + 8, y + 17, pulse); drawSparkle(ctx, x + w - 9, y + 17, 1 - pulse); rect(ctx, x - 14, ground - 7, w + 28, 7, COLORS.lightBrown);
@@ -169,6 +176,7 @@ function drawInterior(ctx: CanvasRenderingContext2D, width: number, height: numb
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const dogRef = useRef<HTMLImageElement | null>(null);
   const audioRef = useRef<AudioKit | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastRef = useRef(0);
@@ -248,6 +256,7 @@ export default function Home() {
 
   useEffect(() => {
     const image = new Image(); image.src = '/wine-world.png'; image.onload = () => { imageRef.current = image; };
+    const dog = new Image(); dog.src = '/dog-8bit.png'; dog.onload = () => { dogRef.current = dog; };
     const canvas = canvasRef.current; if (!canvas) return;
     const resize = () => { const box = canvas.getBoundingClientRect(); canvas.width = Math.max(320, Math.floor(box.width / 3)); canvas.height = Math.max(190, Math.floor(box.height / 3)); };
     const observer = new ResizeObserver(resize); observer.observe(canvas); resize(); return () => observer.disconnect();
@@ -329,7 +338,7 @@ export default function Home() {
         const pickup = pickupFxRef.current;
         if (pickup && pickup.time < 1.05) { const fx = pickup.x - cameraX; const rise = Math.sin(Math.min(1, pickup.time * 1.25) * Math.PI) * 28; const scale = 1 + Math.sin(Math.min(1, pickup.time) * Math.PI) * .45; drawBottle(ctx, fx, ground - pickup.height - 22 - rise, scale, 1 - pickup.time / 1.05); }
         else if (pickup) pickupFxRef.current = null;
-        const doorScreenX = DOOR_X - cameraX; if (doorScreenX < canvas.width + 180) drawDoor(ctx, doorScreenX, ground, phaseRef.current === 'entering' ? Math.min(1, phaseTimeRef.current / .9) : 0, sceneTime);
+        const doorScreenX = DOOR_X - cameraX; if (doorScreenX < canvas.width + 180) drawDoor(ctx, doorScreenX, ground, phaseRef.current === 'entering' ? Math.min(1, phaseTimeRef.current / .9) : 0, sceneTime, dogRef.current);
         const enteringShift = phaseRef.current === 'entering' ? Math.min(72, phaseTimeRef.current * 33) : 0; drawRunner(ctx, playerScreenX + enteringShift, ground, jumpYRef.current, Math.floor(sceneTime * 8), phaseRef.current === 'entering');
         if (phaseRef.current === 'hit') { ctx.globalAlpha = Math.floor(sceneTime * 14) % 2 ? .72 : .18; rect(ctx, 0, 0, canvas.width, canvas.height, COLORS.cream); ctx.globalAlpha = 1; }
       }
