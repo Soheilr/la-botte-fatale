@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Phase = 'intro' | 'playing' | 'hit' | 'entering' | 'done';
-type ObstacleKind = 'barrel' | 'glass' | 'crate' | 'cork' | 'press';
+type ObstacleKind = 'mushroom-red' | 'mushroom-purple' | 'mushroom-gold' | 'mushroom-toxic' | 'mushroom-cluster';
 type Obstacle = { x: number; width: number; height: number; kind: ObstacleKind; label: string };
 type Collectible = { x: number; height: number; label: string; high?: boolean };
 type AudioKit = { ctx: AudioContext; master: GainNode; musicTimer: number | null; musicStep: number };
@@ -19,11 +19,11 @@ const PLAYER_SCALE = 1.27;
 const PLATFORM = { x: 2510, width: 245, height: 70 };
 
 const OBSTACLES: Obstacle[] = [
-  { x: 455, width: 36, height: 31, kind: 'barrel', label: 'botte rotolante' },
-  { x: 960, width: 44, height: 24, kind: 'glass', label: 'bottiglie rotte' },
-  { x: 1470, width: 48, height: 37, kind: 'crate', label: 'cassetta d’uva' },
-  { x: 1995, width: 53, height: 32, kind: 'cork', label: 'tappo gigante' },
-  { x: 2570, width: 125, height: 64, kind: 'press', label: 'torchio del vicolo' },
+  { x: 455, width: 42, height: 34, kind: 'mushroom-red', label: 'fungo velenoso rosso' },
+  { x: 960, width: 48, height: 29, kind: 'mushroom-purple', label: 'fungo velenoso viola' },
+  { x: 1470, width: 51, height: 40, kind: 'mushroom-gold', label: 'fungo velenoso dorato' },
+  { x: 1995, width: 54, height: 35, kind: 'mushroom-toxic', label: 'fungo velenoso tossico' },
+  { x: 2570, width: 125, height: 64, kind: 'mushroom-cluster', label: 'colonia di funghi velenosi' },
 ];
 
 const COLLECTIBLES: Collectible[] = [
@@ -64,11 +64,11 @@ function drawRunner(ctx: CanvasRenderingContext2D, x: number, ground: number, ju
   const y = ground - baseHeight * PLAYER_SCALE - jumpY;
   const step = jumpY > 2 ? 1 : frame % 2;
   ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(PLAYER_SCALE, PLAYER_SCALE);
-  // Lina keeps her cap, scarf and apron; her long black hair now trails clearly behind her.
+  // Lina keeps her scarf and apron; her long black hair and tiny beard are unmistakable.
   rect(ctx, -5, 5, 10, 16, COLORS.black); rect(ctx, -8, 9, 7, 15, COLORS.black); rect(ctx, -11 - step, 15, 7, 11, COLORS.black);
   rect(ctx, -4 - step * 2, 10, 9, 4, COLORS.cream); rect(ctx, -8 - step * 3, 8, 8, 3, COLORS.red);
-  rect(ctx, 3, 2, 15, 10, COLORS.black); rect(ctx, 0, 1, 17, 4, COLORS.burgundy); rect(ctx, 5, -1, 9, 3, COLORS.red);
-  rect(ctx, 6, 5, 10, 8, COLORS.cream); rect(ctx, 14, 7, 3, 3, COLORS.black); rect(ctx, 4, 12, 14, 13, COLORS.black);
+  rect(ctx, 2, 1, 16, 12, COLORS.black); rect(ctx, 0, 4, 7, 10, COLORS.black);
+  rect(ctx, 6, 5, 10, 8, COLORS.cream); rect(ctx, 14, 7, 3, 3, COLORS.black); rect(ctx, 11, 11, 7, 5, COLORS.black); rect(ctx, 14, 10, 4, 3, COLORS.brown); rect(ctx, 4, 12, 14, 13, COLORS.black);
   rect(ctx, 7, 13, 8, 5, COLORS.cream); rect(ctx, 5, 18, 12, 8, COLORS.green); rect(ctx, 8, 19, 6, 5, COLORS.cream); rect(ctx, 10, 20, 2, 3, COLORS.red);
   rect(ctx, 0, 14 + step * 2, 5, 10, COLORS.cream); rect(ctx, 17, 14 + (1 - step) * 2, 5, 10, COLORS.cream); rect(ctx, 1, 13, 3, 8, COLORS.green);
   if (entering) { rect(ctx, 7, 25, 5, 7, COLORS.brown); rect(ctx, 13, 25, 5, 7, COLORS.brown); }
@@ -78,25 +78,22 @@ function drawRunner(ctx: CanvasRenderingContext2D, x: number, ground: number, ju
 
 function drawObstacle(ctx: CanvasRenderingContext2D, obstacle: Obstacle, x: number, ground: number, t: number) {
   const y = ground - obstacle.height;
-  if (obstacle.kind === 'barrel') {
-    const bob = Math.floor(t * 7) % 2;
-    rect(ctx, x + 4, y + bob, 28, 30, COLORS.black); rect(ctx, x + 1, y + 6 + bob, 34, 18, COLORS.black);
-    rect(ctx, x + 5, y + 3 + bob, 26, 24, COLORS.brown); rect(ctx, x + 3, y + 8 + bob, 30, 4, COLORS.lightBrown);
-    rect(ctx, x + 3, y + 20 + bob, 30, 4, COLORS.lightBrown); rect(ctx, x + 17, y + 4 + bob, 3, 23, COLORS.black);
-  } else if (obstacle.kind === 'glass') {
-    rect(ctx, x, ground - 4, 44, 4, COLORS.purple); rect(ctx, x + 3, y + 9, 4, 15, COLORS.black); rect(ctx, x + 7, y + 16, 10, 4, COLORS.cream);
-    rect(ctx, x + 20, y + 2, 4, 22, COLORS.black); rect(ctx, x + 23, y + 14, 10, 5, COLORS.cream); rect(ctx, x + 36, y + 11, 4, 13, COLORS.black);
-  } else if (obstacle.kind === 'crate') {
-    rect(ctx, x, y, 48, 37, COLORS.black); rect(ctx, x + 4, y + 4, 40, 29, COLORS.brown); rect(ctx, x + 7, y + 7, 34, 5, COLORS.lightBrown); rect(ctx, x + 7, y + 25, 34, 5, COLORS.lightBrown);
-    for (let i = 0; i < 4; i++) rect(ctx, x + 9 + i * 8, y + 14 + (i % 2) * 4, 6, 6, i % 2 ? COLORS.red : COLORS.purple);
-  } else if (obstacle.kind === 'cork') {
-    rect(ctx, x + 4, y + 2, 45, 28, COLORS.black); rect(ctx, x, y + 8, 53, 16, COLORS.black); rect(ctx, x + 5, y + 5, 43, 22, COLORS.lightBrown);
-    rect(ctx, x + 11, y + 5, 4, 22, COLORS.brown); rect(ctx, x + 36, y + 5, 4, 22, COLORS.brown); rect(ctx, x + 20, y + 12, 11, 6, COLORS.burgundy);
-  } else {
-    rect(ctx, x, y, obstacle.width, obstacle.height, COLORS.black); rect(ctx, x + 6, y + 6, obstacle.width - 12, obstacle.height - 6, COLORS.brown);
-    rect(ctx, x + 12, y + 12, obstacle.width - 24, 10, COLORS.lightBrown); rect(ctx, x + 18, y + 27, obstacle.width - 36, 26, COLORS.burgundy);
-    for (let px = x + 11; px < x + obstacle.width - 8; px += 18) rect(ctx, px, ground - 11, 10, 6, COLORS.black);
-  }
+  const bob = Math.floor(t * 6) % 2;
+  const colors: Record<ObstacleKind, string> = { 'mushroom-red': COLORS.red, 'mushroom-purple': COLORS.purple, 'mushroom-gold': COLORS.gold, 'mushroom-toxic': COLORS.lightGreen, 'mushroom-cluster': COLORS.red };
+  const mushroom = (mx: number, mw: number, mh: number, color: string, flip = false) => {
+    const my = ground - mh + bob; const stemW = Math.max(8, Math.round(mw * .28)); const stemX = mx + Math.round((mw - stemW) / 2);
+    rect(ctx, stemX - 3, my + Math.round(mh * .45), stemW + 6, Math.round(mh * .55), COLORS.black);
+    rect(ctx, stemX, my + Math.round(mh * .5), stemW, Math.round(mh * .45), COLORS.cream);
+    rect(ctx, mx + 5, my, mw - 10, 5, COLORS.black); rect(ctx, mx, my + 5, mw, Math.round(mh * .42), COLORS.black);
+    rect(ctx, mx + 5, my + 5, mw - 10, Math.round(mh * .3), color); rect(ctx, mx + 2, my + Math.round(mh * .28), mw - 4, 5, color);
+    rect(ctx, mx + (flip ? mw - 13 : 8), my + 8, 6, 6, COLORS.cream); rect(ctx, mx + (flip ? 8 : mw - 14), my + 14, 5, 5, COLORS.cream);
+    rect(ctx, stemX + 2, my + Math.round(mh * .61), 3, 3, COLORS.black); rect(ctx, stemX + stemW - 5, my + Math.round(mh * .61), 3, 3, COLORS.black);
+    rect(ctx, stemX + Math.round(stemW / 2) - 1, my + Math.round(mh * .71), 4, 3, COLORS.red);
+  };
+  if (obstacle.kind === 'mushroom-cluster') {
+    rect(ctx, x, ground - 8, obstacle.width, 8, COLORS.black);
+    for (let i = 0; i < 4; i++) mushroom(x + i * 30, 35, 39 + (i % 2) * 15, i % 2 ? COLORS.purple : COLORS.red, i % 2 === 1);
+  } else mushroom(x, obstacle.width, obstacle.height, colors[obstacle.kind], obstacle.kind === 'mushroom-purple');
 }
 
 function drawPlatform(ctx: CanvasRenderingContext2D, x: number, ground: number, t: number) {
@@ -117,11 +114,11 @@ function drawMilestone(ctx: CanvasRenderingContext2D, x: number, ground: number,
   }
 }
 
-function drawDoor(ctx: CanvasRenderingContext2D, x: number, ground: number, opening: number, t: number) {
+function drawDoor(ctx: CanvasRenderingContext2D, x: number, ground: number, opening: number, t: number, signImage: HTMLImageElement | null) {
   const w = 148; const h = 145; const y = ground - h; const pulse = Math.floor(t * 4) % 2;
   rect(ctx, x - 10, y + 20, w + 20, h - 20, COLORS.black); rect(ctx, x - 5, y + 25, w + 10, h - 25, COLORS.burgundy);
   rect(ctx, x, y, w, 47, COLORS.black); rect(ctx, x + 6, y + 6, w - 12, 35, pulse ? COLORS.cream : COLORS.gold);
-  ctx.fillStyle = COLORS.black; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center'; ctx.fillText('LA BOTTE FATALE', x + w / 2, y + 28);
+  if (signImage) ctx.drawImage(signImage, 120, 480, 820, 190, x + 7, y + 7, w - 14, 32);
   for (let i = 0; i < 10; i++) rect(ctx, x + 8 + i * 14, y + 45, 6, 6, (i + pulse) % 2 === 0 ? COLORS.cream : COLORS.red);
   rect(ctx, x + 21, y + 57, 106, 88, COLORS.black); rect(ctx, x + 27, y + 63, 94, 76, COLORS.gold);
   const panel = Math.max(0, 44 - Math.floor(opening * 44)); rect(ctx, x + 27, y + 63, panel, 76, COLORS.green); rect(ctx, x + 77 + (44 - panel), y + 63, panel, 76, COLORS.green);
@@ -146,6 +143,7 @@ function drawInterior(ctx: CanvasRenderingContext2D, width: number, height: numb
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const signRef = useRef<HTMLImageElement | null>(null);
   const audioRef = useRef<AudioKit | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastRef = useRef(0);
@@ -225,6 +223,7 @@ export default function Home() {
 
   useEffect(() => {
     const image = new Image(); image.src = '/wine-world.png'; image.onload = () => { imageRef.current = image; };
+    const sign = new Image(); sign.src = '/insegna-botte-1.png'; sign.onload = () => { signRef.current = sign; };
     const canvas = canvasRef.current; if (!canvas) return;
     const resize = () => { const box = canvas.getBoundingClientRect(); canvas.width = Math.max(320, Math.floor(box.width / 3)); canvas.height = Math.max(190, Math.floor(box.height / 3)); };
     const observer = new ResizeObserver(resize); observer.observe(canvas); resize(); return () => observer.disconnect();
@@ -280,8 +279,7 @@ export default function Home() {
 
         if (worldXRef.current >= DOOR_X - 12) {
           worldXRef.current = DOOR_X - 12;
-          if (collectedRef.current.size < 5) { showMessage('LA BOTTE NE VUOLE CINQUE!', .75); playSfx('fail'); setGamePhase('hit'); }
-          else { showMessage('LA PORTA FATALE SI APRE', 1.25); playSfx('enter'); setGamePhase('entering'); }
+          showMessage('LA PORTA FATALE SI APRE', 1.25); playSfx('enter'); setGamePhase('entering');
         }
       } else if (!pausedRef.current && phaseRef.current === 'hit' && phaseTimeRef.current > .72) startGame();
       else if (!pausedRef.current && phaseRef.current === 'entering' && phaseTimeRef.current > 2.25) { setMessage(''); stopMusic(); setGamePhase('done'); }
@@ -307,7 +305,7 @@ export default function Home() {
         const pickup = pickupFxRef.current;
         if (pickup && pickup.time < 1.05) { const fx = pickup.x - cameraX; const rise = Math.sin(Math.min(1, pickup.time * 1.25) * Math.PI) * 28; const scale = 1 + Math.sin(Math.min(1, pickup.time) * Math.PI) * .45; drawBottle(ctx, fx, ground - pickup.height - 22 - rise, scale, 1 - pickup.time / 1.05); }
         else if (pickup) pickupFxRef.current = null;
-        const doorScreenX = DOOR_X - cameraX; if (doorScreenX < canvas.width + 180) drawDoor(ctx, doorScreenX, ground, phaseRef.current === 'entering' ? Math.min(1, phaseTimeRef.current / .9) : 0, sceneTime);
+        const doorScreenX = DOOR_X - cameraX; if (doorScreenX < canvas.width + 180) drawDoor(ctx, doorScreenX, ground, phaseRef.current === 'entering' ? Math.min(1, phaseTimeRef.current / .9) : 0, sceneTime, signRef.current);
         const enteringShift = phaseRef.current === 'entering' ? Math.min(72, phaseTimeRef.current * 33) : 0; drawRunner(ctx, playerScreenX + enteringShift, ground, jumpYRef.current, Math.floor(sceneTime * 8), phaseRef.current === 'entering');
         if (phaseRef.current === 'hit') { ctx.globalAlpha = Math.floor(sceneTime * 14) % 2 ? .72 : .18; rect(ctx, 0, 0, canvas.width, canvas.height, COLORS.cream); ctx.globalAlpha = 1; }
       }
@@ -337,10 +335,10 @@ export default function Home() {
         </header>}
         <div className={`game-message ${message ? 'visible' : ''}`} role="status" aria-live="polite"><span>{message}</span>{message === '+1 BOTTIGLIA' && <i className="pickup-icon"><b /><em /></i>}</div>
         {paused && <div className="pause-layer"><div><span>LA NOTTE È SOSPESA</span><strong>PAUSA</strong><small>RIPRENDI DALLO STESSO PUNTO</small></div></div>}
-        {phase === 'intro' && <div className="start-layer"><div className="title-lockup"><div className="title-rule"><i /> <span>UNA NOTTE · CINQUE BOTTIGLIE</span> <i /></div><h1>LA BOTTE<br /><em>FATALE</em></h1><p>Porta Lina fino all’ultima luce della città.</p><button type="button" onClick={startGame}>STAPPA LA NOTTE <span>→</span></button><small>TAP · CLICK · SPAZIO · DUE VOLTE PER IL DOPPIO SALTO</small></div></div>}
+        {phase === 'intro' && <div className="start-layer"><div className="title-lockup"><div className="title-rule"><i /> <span>UNA NOTTE · CINQUE BOTTIGLIE</span> <i /></div><div className="official-logo" role="img" aria-label="La Botte Fatale"><img src="/logo-botte-fatale.png" alt="" /></div><p>Porta Lina fino all’ultima luce della città.</p><button type="button" onClick={startGame}>STAPPA LA NOTTE <span>→</span></button><small>TAP · CLICK · SPAZIO · DUE VOLTE PER IL DOPPIO SALTO</small></div></div>}
         {phase === 'playing' && <div className="jump-prompt" aria-hidden="true">SALTO / DOPPIO SALTO <b>↑↑</b></div>}
         {phase === 'done' && <div className="final-layer">
-          <div className="final-marquee"><p>LA PORTA ERA QUELLA GIUSTA</p><h2>LA BOTTE FATALE</h2><strong>Vino, bottiglie e incontri fatali.</strong></div>
+          <div className="final-marquee"><p>LA PORTA ERA QUELLA GIUSTA</p><div className="official-logo final-logo" role="img" aria-label="La Botte Fatale"><img src="/logo-botte-fatale.png" alt="" /></div><strong>Vino, bottiglie e incontri fatali.</strong><div className="final-score"><span>BOTTIGLIE TROVATE · {bottles}/5</span><div className="score-bottles" aria-label={`${bottles} bottiglie raccolte su 5`}>{[0,1,2,3,4].map((index) => <i key={index} className={index < bottles ? 'full' : ''}><b /><em /></i>)}</div></div></div>
           <div className="bar-info">
             <a className="bar-note address" href={mapsUrl} target="_blank" rel="noreferrer"><span>DOVE TROVARCI</span><b>Via Giuseppe Giacosa, 11<br />20127 Milano MI</b></a>
             <div className="bar-note hours"><span>LUCI ACCESE</span><ul className="hours-list"><li><i>Monday</i><b>16:00–23:00</b></li><li><i>Tuesday</i><b>16:00–23:00</b></li><li><i>Wednesday</i><b>16:00–23:00</b></li><li><i>Thursday</i><b>16:00–23:00</b></li><li><i>Friday</i><b>17:00–23:00</b></li><li><i>Saturday</i><b>17:00–23:00</b></li><li><i>Sunday</i><b>Closed</b></li></ul></div>
