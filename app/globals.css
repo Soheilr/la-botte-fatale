@@ -35,8 +35,8 @@ button { color:inherit; }
 .title-rule i { display:block; width:62px; height:6px; border-top:3px solid var(--cream); border-bottom:3px solid var(--cream); }
 .title-lockup h1,.final-marquee h2 { margin:0; font-family:Impact,Haettenschweiler,"Arial Black",sans-serif; color:var(--cream); font-size:clamp(62px,13vw,134px); line-height:.76; letter-spacing:.045em; text-shadow:6px 0 var(--ink),-6px 0 var(--ink),0 6px var(--ink),0 -6px var(--ink),9px 9px 0 var(--red); }
 .title-lockup h1 em { color:var(--gold); font-style:normal; }
-.official-logo { position:relative; width:min(650px,92vw); aspect-ratio:4/1; margin:0 auto; overflow:hidden; border:6px solid var(--ink); outline:3px solid var(--cream); background:#fff; box-shadow:9px 9px 0 var(--red); image-rendering:pixelated; }
-.official-logo img { position:absolute; width:179%; max-width:none; height:auto; left:-36.6%; top:-140%; image-rendering:pixelated; }
+.pixel-sign { display:block; width:min(500px,78vw); height:auto; margin:0 auto; image-rendering:pixelated; image-rendering:crisp-edges; filter:drop-shadow(8px 8px 0 var(--ink)); }
+.intro-sign { margin-top:2px; }
 .title-lockup>p { width:min(520px,90%); margin:28px auto 20px; font-size:18px; font-weight:900; line-height:1.35; text-shadow:3px 3px 0 var(--ink); }
 .title-lockup button,.enter-button { display:flex; align-items:center; justify-content:center; width:min(390px,100%); min-height:54px; margin:0 auto 14px; border:5px solid var(--ink); background:var(--cream); color:var(--ink); font-size:16px; font-weight:900; letter-spacing:.08em; text-decoration:none; box-shadow:7px 7px 0 var(--ink); cursor:pointer; animation:button-blink 1s steps(2,end) infinite; }
 .title-lockup button span,.enter-button span { margin-left:auto; font-size:24px; }
@@ -61,7 +61,8 @@ button { color:inherit; }
 .final-marquee p { display:inline-block; margin:0 0 16px; padding:7px 10px; border:4px solid var(--ink); background:var(--cream); color:var(--ink); font-size:12px; font-weight:900; letter-spacing:.1em; text-shadow:none; }
 .final-marquee h2 { font-size:clamp(54px,8vw,106px); line-height:.82; }
 .final-marquee strong { display:block; max-width:520px; margin-top:20px; color:var(--cream); font-size:clamp(18px,2.5vw,28px); line-height:1.2; }
-.final-logo { width:min(500px,38vw); margin:0; box-shadow:7px 7px 0 var(--red); }
+.final-sign { width:min(390px,34vw); margin:0; filter:drop-shadow(6px 6px 0 var(--ink)); }
+.final-character-row { display:flex; align-items:flex-end; gap:18px; }
 .final-score { display:inline-grid; gap:8px; margin-top:18px; padding:10px 13px 12px; border:4px solid var(--ink); outline:3px solid var(--cream); outline-offset:-7px; background:var(--wine); color:var(--cream); text-shadow:2px 2px 0 var(--ink); }
 .final-score>span { font-size:13px; font-weight:900; letter-spacing:.09em; }
 .score-bottles { display:flex; align-items:flex-end; gap:10px; min-height:45px; }
@@ -73,6 +74,7 @@ button { color:inherit; }
 .score-bottles i.full { background:var(--green); box-shadow:0 0 0 2px var(--cream),3px 3px 0 2px var(--ink); }
 .score-bottles i.full::before { background:var(--cream); }
 .score-bottles i.full::after { background:var(--cream); border-top:2px solid var(--ink); border-bottom:2px solid var(--ink); }
+.enoteca-dog { display:block; width:clamp(92px,10vw,145px); height:auto; margin-bottom:-10px; filter:drop-shadow(6px 6px 0 var(--ink)); image-rendering:pixelated; image-rendering:crisp-edges; }
 .bar-info { align-self:center; display:grid; grid-template-columns:1fr 1fr; grid-template-areas:"address hours" "instagram hours" "map hours"; gap:12px; max-width:760px; }
 .bar-note { position:relative; display:flex; min-height:90px; flex-direction:column; justify-content:center; padding:15px 16px; border:5px solid var(--ink); background:var(--cream); color:var(--ink); box-shadow:7px 7px 0 var(--ink); text-decoration:none; transform:rotate(-1deg); }
 .bar-note:nth-child(even) { transform:rotate(1deg); background:var(--gold); }
@@ -116,7 +118,7 @@ a.bar-note:hover span,a.bar-note:focus-visible span { color:var(--gold); }
   .start-layer { padding:66px 16px 18px; }
   .title-rule i { width:26px; }
   .title-rule span { font-size:10px; }
-  .official-logo { width:min(520px,90vw); border-width:4px; outline-width:2px; box-shadow:6px 6px 0 var(--red); }
+  .pixel-sign { width:min(430px,84vw); filter:drop-shadow(5px 5px 0 var(--ink)); }
   .title-lockup>p { margin:24px auto 18px; font-size:16px; }
   .title-lockup button { max-width:320px; font-size:14px; }
   .final-layer { grid-template-columns:1fr; grid-template-rows:auto auto auto; align-content:start; gap:16px; padding:22px 18px 28px; }
@@ -124,8 +126,10 @@ a.bar-note:hover span,a.bar-note:focus-visible span { color:var(--gold); }
   .final-marquee p { margin-bottom:12px; }
   .final-marquee h2 { font-size:clamp(52px,16vw,74px); }
   .final-marquee strong { margin-top:12px; font-size:18px; }
-  .final-logo { width:min(470px,88vw); margin:0 auto; }
+  .final-sign { width:min(360px,82vw); margin:0 auto; }
+  .final-character-row { justify-content:center; gap:10px; }
   .final-score { margin-top:12px; }
+  .enoteca-dog { width:clamp(82px,24vw,112px); }
   .bar-info { grid-template-columns:1fr 1fr; grid-template-areas:"address instagram" "hours hours" "map map"; gap:8px; width:100%; }
   .bar-note { min-height:76px; padding:11px; box-shadow:5px 5px 0 var(--ink); }
   .bar-note span { font-size:10px; }

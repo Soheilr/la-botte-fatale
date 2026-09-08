@@ -35,6 +35,8 @@ const COLLECTIBLES: Collectible[] = [
 ];
 
 const COLORS = { black: '#10070a', burgundy: '#65152c', red: '#941d3d', green: '#173c2b', lightGreen: '#346044', cream: '#f3dfb2', gold: '#d3a24d', brown: '#6c452f', lightBrown: '#aa7550', purple: '#b47ab0' };
+const SIGN_BLUE = '#258bd0';
+const SIGN_RED = '#ff302d';
 
 function rect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string) {
   ctx.fillStyle = color;
@@ -57,6 +59,31 @@ function drawSparkle(ctx: CanvasRenderingContext2D, x: number, y: number, frame:
   const s = frame % 2 === 0 ? 5 : 3;
   rect(ctx, x - 1, y - s, 3, s * 2 + 1, color);
   rect(ctx, x - s, y - 1, s * 2 + 1, 3, color);
+}
+
+function drawPixelBrandSign(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, lit = true) {
+  ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(width / 320, height / 88);
+  rect(ctx, 0, 7, 320, 81, COLORS.black); rect(ctx, 7, 0, 313, 81, COLORS.brown); rect(ctx, 4, 4, 309, 72, COLORS.black); rect(ctx, 10, 10, 297, 60, COLORS.cream);
+  for (let px = 14; px < 304; px += 18) rect(ctx, px, 13, 8, 4, lit && px % 36 === 14 ? SIGN_RED : COLORS.gold);
+  // The original barrel-and-wine mark, reduced to a crisp little pixel emblem.
+  rect(ctx, 20, 25, 58, 32, COLORS.black); rect(ctx, 24, 28, 50, 26, COLORS.cream); rect(ctx, 28, 29, 4, 24, COLORS.brown); rect(ctx, 43, 28, 4, 27, COLORS.brown); rect(ctx, 59, 29, 4, 24, COLORS.brown);
+  rect(ctx, 20, 35, 58, 4, COLORS.brown); rect(ctx, 20, 46, 58, 4, COLORS.brown); rect(ctx, 16, 30, 5, 20, COLORS.black); rect(ctx, 77, 31, 5, 18, COLORS.black);
+  rect(ctx, 74, 42, 7, 5, COLORS.black); rect(ctx, 80, 39, 5, 4, COLORS.black); rect(ctx, 85, 42, 14, 24, COLORS.black); rect(ctx, 89, 46, 10, 16, SIGN_RED); rect(ctx, 88, 45, 9, 7, COLORS.cream);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.font = '900 29px "Courier New",monospace';
+  ctx.fillStyle = COLORS.black; ctx.fillText('LA BOTTE', 101, 44); ctx.fillStyle = SIGN_BLUE; ctx.fillText('LA BOTTE', 98, 41);
+  ctx.font = '900 22px "Courier New",monospace'; ctx.fillStyle = COLORS.black; ctx.fillText('FATALE', 174, 66); ctx.fillStyle = lit ? SIGN_RED : COLORS.red; ctx.fillText('FATALE', 171, 63);
+  rect(ctx, 103, 51, 60, 4, SIGN_BLUE); rect(ctx, 108, 58, 44, 4, COLORS.green);
+  ctx.restore();
+}
+
+function PixelSign({ className = '' }: { className?: string }) {
+  const signCanvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = signCanvasRef.current; const ctx = canvas?.getContext('2d'); if (!canvas || !ctx) return;
+    let lit = true; const paint = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.imageSmoothingEnabled = false; drawPixelBrandSign(ctx, 0, 0, canvas.width, canvas.height, lit); };
+    paint(); const timer = window.setInterval(() => { lit = !lit; paint(); }, 620); return () => window.clearInterval(timer);
+  }, []);
+  return <canvas ref={signCanvasRef} width="320" height="88" className={`pixel-sign ${className}`} role="img" aria-label="Insegna La Botte Fatale" />;
 }
 
 function drawRunner(ctx: CanvasRenderingContext2D, x: number, ground: number, jumpY: number, frame: number, entering: boolean) {
@@ -114,11 +141,10 @@ function drawMilestone(ctx: CanvasRenderingContext2D, x: number, ground: number,
   }
 }
 
-function drawDoor(ctx: CanvasRenderingContext2D, x: number, ground: number, opening: number, t: number, signImage: HTMLImageElement | null) {
+function drawDoor(ctx: CanvasRenderingContext2D, x: number, ground: number, opening: number, t: number) {
   const w = 148; const h = 145; const y = ground - h; const pulse = Math.floor(t * 4) % 2;
   rect(ctx, x - 10, y + 20, w + 20, h - 20, COLORS.black); rect(ctx, x - 5, y + 25, w + 10, h - 25, COLORS.burgundy);
-  rect(ctx, x, y, w, 47, COLORS.black); rect(ctx, x + 6, y + 6, w - 12, 35, pulse ? COLORS.cream : COLORS.gold);
-  if (signImage) ctx.drawImage(signImage, 120, 480, 820, 190, x + 7, y + 7, w - 14, 32);
+  rect(ctx, x, y, w, 47, COLORS.black); drawPixelBrandSign(ctx, x + 5, y + 4, w - 10, 38, pulse === 1);
   for (let i = 0; i < 10; i++) rect(ctx, x + 8 + i * 14, y + 45, 6, 6, (i + pulse) % 2 === 0 ? COLORS.cream : COLORS.red);
   rect(ctx, x + 21, y + 57, 106, 88, COLORS.black); rect(ctx, x + 27, y + 63, 94, 76, COLORS.gold);
   const panel = Math.max(0, 44 - Math.floor(opening * 44)); rect(ctx, x + 27, y + 63, panel, 76, COLORS.green); rect(ctx, x + 77 + (44 - panel), y + 63, panel, 76, COLORS.green);
@@ -143,7 +169,6 @@ function drawInterior(ctx: CanvasRenderingContext2D, width: number, height: numb
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const signRef = useRef<HTMLImageElement | null>(null);
   const audioRef = useRef<AudioKit | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastRef = useRef(0);
@@ -223,7 +248,6 @@ export default function Home() {
 
   useEffect(() => {
     const image = new Image(); image.src = '/wine-world.png'; image.onload = () => { imageRef.current = image; };
-    const sign = new Image(); sign.src = '/insegna-botte-1.png'; sign.onload = () => { signRef.current = sign; };
     const canvas = canvasRef.current; if (!canvas) return;
     const resize = () => { const box = canvas.getBoundingClientRect(); canvas.width = Math.max(320, Math.floor(box.width / 3)); canvas.height = Math.max(190, Math.floor(box.height / 3)); };
     const observer = new ResizeObserver(resize); observer.observe(canvas); resize(); return () => observer.disconnect();
@@ -305,7 +329,7 @@ export default function Home() {
         const pickup = pickupFxRef.current;
         if (pickup && pickup.time < 1.05) { const fx = pickup.x - cameraX; const rise = Math.sin(Math.min(1, pickup.time * 1.25) * Math.PI) * 28; const scale = 1 + Math.sin(Math.min(1, pickup.time) * Math.PI) * .45; drawBottle(ctx, fx, ground - pickup.height - 22 - rise, scale, 1 - pickup.time / 1.05); }
         else if (pickup) pickupFxRef.current = null;
-        const doorScreenX = DOOR_X - cameraX; if (doorScreenX < canvas.width + 180) drawDoor(ctx, doorScreenX, ground, phaseRef.current === 'entering' ? Math.min(1, phaseTimeRef.current / .9) : 0, sceneTime, signRef.current);
+        const doorScreenX = DOOR_X - cameraX; if (doorScreenX < canvas.width + 180) drawDoor(ctx, doorScreenX, ground, phaseRef.current === 'entering' ? Math.min(1, phaseTimeRef.current / .9) : 0, sceneTime);
         const enteringShift = phaseRef.current === 'entering' ? Math.min(72, phaseTimeRef.current * 33) : 0; drawRunner(ctx, playerScreenX + enteringShift, ground, jumpYRef.current, Math.floor(sceneTime * 8), phaseRef.current === 'entering');
         if (phaseRef.current === 'hit') { ctx.globalAlpha = Math.floor(sceneTime * 14) % 2 ? .72 : .18; rect(ctx, 0, 0, canvas.width, canvas.height, COLORS.cream); ctx.globalAlpha = 1; }
       }
@@ -335,10 +359,10 @@ export default function Home() {
         </header>}
         <div className={`game-message ${message ? 'visible' : ''}`} role="status" aria-live="polite"><span>{message}</span>{message === '+1 BOTTIGLIA' && <i className="pickup-icon"><b /><em /></i>}</div>
         {paused && <div className="pause-layer"><div><span>LA NOTTE È SOSPESA</span><strong>PAUSA</strong><small>RIPRENDI DALLO STESSO PUNTO</small></div></div>}
-        {phase === 'intro' && <div className="start-layer"><div className="title-lockup"><div className="title-rule"><i /> <span>UNA NOTTE · CINQUE BOTTIGLIE</span> <i /></div><div className="official-logo" role="img" aria-label="La Botte Fatale"><img src="/logo-botte-fatale.png" alt="" /></div><p>Porta Lina fino all’ultima luce della città.</p><button type="button" onClick={startGame}>STAPPA LA NOTTE <span>→</span></button><small>TAP · CLICK · SPAZIO · DUE VOLTE PER IL DOPPIO SALTO</small></div></div>}
+        {phase === 'intro' && <div className="start-layer"><div className="title-lockup"><div className="title-rule"><i /> <span>UNA NOTTE · CINQUE BOTTIGLIE</span> <i /></div><PixelSign className="intro-sign" /><p>Porta Lina fino all’ultima luce della città.</p><button type="button" onClick={startGame}>STAPPA LA NOTTE <span>→</span></button><small>TAP · CLICK · SPAZIO · DUE VOLTE PER IL DOPPIO SALTO</small></div></div>}
         {phase === 'playing' && <div className="jump-prompt" aria-hidden="true">SALTO / DOPPIO SALTO <b>↑↑</b></div>}
         {phase === 'done' && <div className="final-layer">
-          <div className="final-marquee"><p>LA PORTA ERA QUELLA GIUSTA</p><div className="official-logo final-logo" role="img" aria-label="La Botte Fatale"><img src="/logo-botte-fatale.png" alt="" /></div><strong>Vino, bottiglie e incontri fatali.</strong><div className="final-score"><span>BOTTIGLIE TROVATE · {bottles}/5</span><div className="score-bottles" aria-label={`${bottles} bottiglie raccolte su 5`}>{[0,1,2,3,4].map((index) => <i key={index} className={index < bottles ? 'full' : ''}><b /><em /></i>)}</div></div></div>
+          <div className="final-marquee"><p>LA PORTA ERA QUELLA GIUSTA</p><PixelSign className="final-sign" /><strong>Vino, bottiglie e incontri fatali.</strong><div className="final-character-row"><div className="final-score"><span>BOTTIGLIE TROVATE · {bottles}/5</span><div className="score-bottles" aria-label={`${bottles} bottiglie raccolte su 5`}>{[0,1,2,3,4].map((index) => <i key={index} className={index < bottles ? 'full' : ''}><b /><em /></i>)}</div></div><img className="enoteca-dog" src="/dog-8bit.png" alt="Il cane della Botte Fatale con gli occhiali da sole" /></div></div>
           <div className="bar-info">
             <a className="bar-note address" href={mapsUrl} target="_blank" rel="noreferrer"><span>DOVE TROVARCI</span><b>Via Giuseppe Giacosa, 11<br />20127 Milano MI</b></a>
             <div className="bar-note hours"><span>LUCI ACCESE</span><ul className="hours-list"><li><i>Monday</i><b>16:00–23:00</b></li><li><i>Tuesday</i><b>16:00–23:00</b></li><li><i>Wednesday</i><b>16:00–23:00</b></li><li><i>Thursday</i><b>16:00–23:00</b></li><li><i>Friday</i><b>17:00–23:00</b></li><li><i>Saturday</i><b>17:00–23:00</b></li><li><i>Sunday</i><b>Closed</b></li></ul></div>
