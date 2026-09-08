@@ -207,16 +207,25 @@ export default function Home() {
   const stopMusic = useCallback(() => { const kit = audioRef.current; if (kit?.musicTimer !== null && kit?.musicTimer !== undefined) { window.clearInterval(kit.musicTimer); kit.musicTimer = null; } }, []);
   const startMusic = useCallback(() => {
     const kit = audioRef.current; if (!kit || kit.musicTimer !== null) return;
-    const notes = [196, 247, 294, 247, 220, 262, 330, 262];
-    const beat = () => { const active = audioRef.current; if (!active || pausedRef.current || phaseRef.current === 'done') return; const note = notes[active.musicStep % notes.length]; tone(note, .12, .018); if (active.musicStep % 4 === 0) tone(note / 2, .16, .025, 0, 'triangle'); active.musicStep++; };
-    beat(); kit.musicTimer = window.setInterval(beat, 185);
+    const melody = [294, 370, 440, 370, 330, 392, 494, 392, 262, 330, 392, 523, 494, 392, 330, 247];
+    const bass = [98, 110, 123, 110, 87, 98, 110, 123];
+    const beat = () => {
+      const active = audioRef.current; if (!active || pausedRef.current || phaseRef.current === 'done') return;
+      const step = active.musicStep; const note = melody[step % melody.length];
+      tone(note, step % 4 === 3 ? .17 : .09, .027); if (step % 4 === 1) tone(note * 2, .055, .012, .035);
+      if (step % 2 === 0) tone(bass[(step / 2) % bass.length], .13, .031, 0, 'triangle');
+      if (step % 4 === 0) tone(68, .055, .021, 0, 'sawtooth');
+      if (step % 8 === 6) tone(740, .035, .011, 0, 'square');
+      active.musicStep++;
+    };
+    beat(); kit.musicTimer = window.setInterval(beat, 145);
   }, [tone]);
 
   const initAudio = useCallback(() => {
     if (!audioRef.current || audioRef.current.ctx.state === 'closed') {
       const AudioConstructor = window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!AudioConstructor) return;
-      const ctx = new AudioConstructor(); const master = ctx.createGain(); master.gain.value = .55; master.connect(ctx.destination);
+      const ctx = new AudioConstructor(); const master = ctx.createGain(); master.gain.value = .62; master.connect(ctx.destination);
       audioRef.current = { ctx, master, musicTimer: null, musicStep: 0 };
     }
     void audioRef.current.ctx.resume().catch(() => undefined);
@@ -258,8 +267,14 @@ export default function Home() {
     const image = new Image(); image.src = '/wine-world.png'; image.onload = () => { imageRef.current = image; };
     const dog = new Image(); dog.src = '/dog-8bit.png'; dog.onload = () => { dogRef.current = dog; };
     const canvas = canvasRef.current; if (!canvas) return;
-    const resize = () => { const box = canvas.getBoundingClientRect(); canvas.width = Math.max(320, Math.floor(box.width / 3)); canvas.height = Math.max(190, Math.floor(box.height / 3)); };
-    const observer = new ResizeObserver(resize); observer.observe(canvas); resize(); return () => observer.disconnect();
+    const resize = () => {
+      const box = canvas.parentElement?.getBoundingClientRect() ?? canvas.getBoundingClientRect();
+      const pixelScale = box.width >= 2200 && box.height >= 1100 ? 4 : box.width >= 720 && box.height >= 560 ? 3 : 2;
+      canvas.width = Math.max(184, Math.ceil(box.width / pixelScale)); canvas.height = Math.max(150, Math.ceil(box.height / pixelScale));
+      canvas.style.width = `${canvas.width * pixelScale}px`; canvas.style.height = `${canvas.height * pixelScale}px`;
+      lastRef.current = performance.now();
+    };
+    const resizeTarget = canvas.parentElement ?? canvas; const observer = new ResizeObserver(resize); observer.observe(resizeTarget); resize(); return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -287,7 +302,7 @@ export default function Home() {
       if (!canvas || !ctx) { rafRef.current = requestAnimationFrame(render); return; }
       const dt = Math.min((time - (lastRef.current || time)) / 1000, .034); lastRef.current = time;
       if (!pausedRef.current) { phaseTimeRef.current += dt; sceneTimeRef.current += dt; if (messageTimerRef.current > 0) { messageTimerRef.current -= dt; if (messageTimerRef.current <= 0) setMessage(''); } if (pickupFxRef.current) pickupFxRef.current.time += dt; }
-      const sceneTime = sceneTimeRef.current; const ground = canvas.height - 35; const playerScreenX = Math.round(canvas.width * .2);
+      const sceneTime = sceneTimeRef.current; const ground = canvas.height - 35; const playerScreenX = Math.round(Math.min(canvas.width * .2, Math.max(20, canvas.width - 160)));
 
       if (!pausedRef.current && phaseRef.current === 'playing') {
         worldXRef.current += SPEED * dt;
@@ -354,7 +369,7 @@ export default function Home() {
     if (kit && kit.ctx.state !== 'closed') void kit.ctx.close().catch(() => undefined);
   }, [stopMusic]);
 
-  const handleGamePointer = (event: React.PointerEvent<HTMLDivElement>) => { if (!(event.target as HTMLElement).closest('a, button')) jump(); };
+  const handleGamePointer = (event: React.PointerEvent<HTMLDivElement>) => { if (!event.isPrimary || (event.target as HTMLElement).closest('a, button')) return; event.preventDefault(); jump(); };
   const mapsUrl = 'https://www.google.com/maps/search/?api=1&query=Via+Giuseppe+Giacosa+11+20127+Milano+MI';
 
   return (
