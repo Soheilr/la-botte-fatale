@@ -91,9 +91,9 @@ function drawRunner(ctx: CanvasRenderingContext2D, x: number, ground: number, ju
   const y = ground - baseHeight * PLAYER_SCALE - jumpY;
   const step = jumpY > 2 ? 1 : frame % 2;
   ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(PLAYER_SCALE, PLAYER_SCALE);
-  // Lina keeps her scarf and apron; her long black hair and tiny beard are unmistakable.
-  rect(ctx, -5, 5, 10, 16, COLORS.black); rect(ctx, -8, 9, 7, 15, COLORS.black); rect(ctx, -11 - step, 15, 7, 11, COLORS.black);
-  rect(ctx, -4 - step * 2, 10, 9, 4, COLORS.cream); rect(ctx, -8 - step * 3, 8, 8, 3, COLORS.red);
+  // Gino keeps the same outfit; the longer black hair now reads as a clean silhouette.
+  rect(ctx, -6, 3, 11, 19, COLORS.black); rect(ctx, -10, 8, 8, 19, COLORS.black); rect(ctx, -13 - step, 15, 7, 14, COLORS.black); rect(ctx, -10 - step, 27, 6, 4, COLORS.black);
+  rect(ctx, -4 - step * 2, 10, 9, 4, COLORS.cream);
   rect(ctx, 2, 1, 16, 12, COLORS.black); rect(ctx, 0, 4, 7, 10, COLORS.black);
   rect(ctx, 6, 5, 10, 8, COLORS.cream); rect(ctx, 14, 7, 3, 3, COLORS.black); rect(ctx, 11, 11, 7, 5, COLORS.black); rect(ctx, 14, 10, 4, 3, COLORS.brown); rect(ctx, 4, 12, 14, 13, COLORS.black);
   rect(ctx, 7, 13, 8, 5, COLORS.cream); rect(ctx, 5, 18, 12, 8, COLORS.green); rect(ctx, 8, 19, 6, 5, COLORS.cream); rect(ctx, 10, 20, 2, 3, COLORS.red);
@@ -147,14 +147,11 @@ function drawDoor(ctx: CanvasRenderingContext2D, x: number, ground: number, open
   rect(ctx, x, y, w, 47, COLORS.black); drawPixelBrandSign(ctx, x + 5, y + 4, w - 10, 38, pulse === 1);
   for (let i = 0; i < 10; i++) rect(ctx, x + 8 + i * 14, y + 45, 6, 6, (i + pulse) % 2 === 0 ? COLORS.cream : COLORS.red);
   rect(ctx, x + 21, y + 57, 106, 88, COLORS.black); rect(ctx, x + 27, y + 63, 94, 76, COLORS.burgundy);
+  const panel = Math.max(0, 44 - Math.floor(opening * 44)); rect(ctx, x + 27, y + 63, panel, 76, COLORS.green); rect(ctx, x + 77 + (44 - panel), y + 63, panel, 76, COLORS.green);
   if (dogImage && opening > 0) {
     const reveal = Math.min(1, opening * 1.45); const welcomeBob = Math.floor(t * 5) % 2;
-    ctx.save(); ctx.globalAlpha = reveal;
-    rect(ctx, x + 46, y + 75, 56, 60, COLORS.gold); rect(ctx, x + 50, y + 79, 48, 56, COLORS.black);
-    ctx.drawImage(dogImage, x + 47, ground - 66 - welcomeBob, 58, 62);
-    ctx.restore();
+    ctx.save(); ctx.globalAlpha = reveal; ctx.drawImage(dogImage, x + 64, ground - 64 - welcomeBob, 56, 60); ctx.restore();
   }
-  const panel = Math.max(0, 44 - Math.floor(opening * 44)); rect(ctx, x + 27, y + 63, panel, 76, COLORS.green); rect(ctx, x + 77 + (44 - panel), y + 63, panel, 76, COLORS.green);
   rect(ctx, x + 72, y + 96, 4, 4, COLORS.cream); drawBottle(ctx, x - 2, y + 78, 1.3); drawBottle(ctx, x + w - 15, y + 78, 1.3);
   drawSparkle(ctx, x + 8, y + 17, pulse); drawSparkle(ctx, x + w - 9, y + 17, 1 - pulse); rect(ctx, x - 14, ground - 7, w + 28, 7, COLORS.lightBrown);
 }
@@ -315,7 +312,7 @@ export default function Home() {
     const lifecycle = new AbortController();
     const register = async () => {
       await context.registerTool({ name: 'start_wine_adventure', title: 'Inizia l’avventura', description: 'Avvia o riavvia il gioco visibile de La Botte Fatale.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, untrustedContentHint: false }, execute: () => { startGame(); return { status: 'playing', bottles: 0 }; } }, { signal: lifecycle.signal });
-      await context.registerTool({ name: 'jump_wine_adventure', title: 'Salta', description: 'Fa saltare Lina; una seconda chiamata in aria esegue il doppio salto.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, untrustedContentHint: false }, execute: () => { jump(); return { status: phaseRef.current, bottles: collectedRef.current.size, jumps: jumpsRef.current, support: supportRef.current, height: Math.round(jumpYRef.current) }; } }, { signal: lifecycle.signal });
+      await context.registerTool({ name: 'jump_wine_adventure', title: 'Salta', description: 'Fa saltare Gino; una seconda chiamata in aria esegue il doppio salto.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, untrustedContentHint: false }, execute: () => { jump(); return { status: phaseRef.current, bottles: collectedRef.current.size, jumps: jumpsRef.current, support: supportRef.current, height: Math.round(jumpYRef.current) }; } }, { signal: lifecycle.signal });
       await context.registerTool({ name: 'pause_wine_adventure', title: 'Pausa o riprendi', description: 'Mette in pausa o riprende il gioco visibile dallo stesso punto.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, untrustedContentHint: false }, execute: () => { togglePause(); return { paused: pausedRef.current }; } }, { signal: lifecycle.signal });
     };
     void register().catch(() => undefined); return () => lifecycle.abort();
@@ -403,12 +400,12 @@ export default function Home() {
       <section className="game-screen" aria-label="La Botte Fatale, avventura pixel-art" onPointerDown={handleGamePointer}>
         <canvas ref={canvasRef} className="game-canvas" aria-label="Corri verso La Botte Fatale, salta gli ostacoli e raccogli cinque bottiglie" />
         {phase !== 'done' && <header className="hud">
-          <div className="hud-brand"><span>LA NOTTE DI LINA</span><strong>LA BOTTE FATALE</strong></div>
+          <div className="hud-brand"><span>LA NOTTE DI GINO</span><strong>LA BOTTE FATALE</strong></div>
           <div className="hud-bottles" aria-label={`${bottles} bottiglie raccolte su 5`}><span>LA CANTINETTA · {bottles}/5</span><div>{[0,1,2,3,4].map((index) => <i key={index} className={index < bottles ? 'full' : ''}><b /><em /></i>)}</div></div>
         </header>}
         <div className={`game-message ${message ? 'visible' : ''}`} role="status" aria-live="polite"><span>{message}</span>{message === '+1 BOTTIGLIA' && <i className="pickup-icon"><b /><em /></i>}</div>
         {paused && <div className="pause-layer"><div><span>LA NOTTE È SOSPESA</span><strong>PAUSA</strong><small>RIPRENDI DALLO STESSO PUNTO</small></div></div>}
-        {phase === 'intro' && <div className="start-layer"><div className="title-lockup"><div className="title-rule"><i /> <span>UNA NOTTE · CINQUE BOTTIGLIE</span> <i /></div><PixelSign className="intro-sign" /><p>Porta Lina fino all’ultima luce della città.</p><button type="button" onPointerDown={() => { void unlockAudio(); }} onClick={startGame}>STAPPA LA NOTTE <span>→</span></button><small>TAP · CLICK · SPAZIO · DUE VOLTE PER IL DOPPIO SALTO</small></div></div>}
+        {phase === 'intro' && <div className="start-layer"><div className="title-lockup"><div className="title-rule"><i /> <span>UNA NOTTE · CINQUE BOTTIGLIE</span> <i /></div><PixelSign className="intro-sign" /><p>Porta Gino fino all’ultima luce della città.</p><button type="button" onPointerDown={() => { void unlockAudio(); }} onClick={startGame}>STAPPA LA NOTTE <span>→</span></button><small>TAP · CLICK · SPAZIO · DUE VOLTE PER IL DOPPIO SALTO</small></div></div>}
         {(phase === 'playing' || paused) && <div className="game-controls"><button className="pause-button" type="button" aria-pressed={paused} onClick={togglePause}>{paused ? 'RIPRENDI' : 'PAUSA'} <kbd>P</kbd></button><button className="jump-button" type="button" onPointerDown={handleJumpPointer} onClick={(event) => { if (event.detail === 0) jump(); }} aria-label="Salto; premi due volte per il doppio salto">SALTO <b>↑↑</b></button></div>}
         {phase === 'done' && <div className="final-layer">
           <div className="final-marquee"><p>LA PORTA ERA QUELLA GIUSTA</p><PixelSign className="final-sign" /><strong>Vino, bottiglie e incontri fatali.</strong><div className="final-character-row"><div className="final-score"><span>BOTTIGLIE TROVATE · {bottles}/5</span><div className="score-bottles" aria-label={`${bottles} bottiglie raccolte su 5`}>{[0,1,2,3,4].map((index) => <i key={index} className={index < bottles ? 'full' : ''}><b /><em /></i>)}</div></div><img className="enoteca-dog" src="./dog-8bit.png" alt="Il cane della Botte Fatale con gli occhiali da sole" /></div></div>

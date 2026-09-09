@@ -61,7 +61,7 @@ button { color:inherit; }
 .final-marquee { align-self:center; max-width:660px; text-align:left; text-shadow:4px 4px 0 var(--ink); }
 .final-marquee p { display:inline-block; margin:0 0 16px; padding:7px 10px; border:4px solid var(--ink); background:var(--cream); color:var(--ink); font-size:12px; font-weight:900; letter-spacing:.1em; text-shadow:none; }
 .final-marquee h2 { font-size:clamp(54px,8vw,106px); line-height:.82; }
-.final-marquee strong { display:block; max-width:520px; margin-top:20px; color:var(--cream); font-size:clamp(18px,2.5vw,28px); line-height:1.2; }
+.final-marquee strong { display:block; width:fit-content; max-width:100%; margin-top:22px; padding:11px 14px 12px; border:4px solid var(--ink); background:var(--cream); color:var(--ink); font-size:clamp(22px,2.35vw,32px); line-height:1.25; letter-spacing:.015em; text-wrap:balance; text-shadow:none; box-shadow:6px 6px 0 var(--ink); }
 .final-sign { width:min(390px,34vw); margin:0; filter:drop-shadow(6px 6px 0 var(--ink)); }
 .final-character-row { display:flex; align-items:flex-end; gap:18px; }
 .final-score { display:inline-grid; gap:8px; margin-top:18px; padding:10px 13px 12px; border:4px solid var(--ink); outline:3px solid var(--cream); outline-offset:-7px; background:var(--wine); color:var(--cream); text-shadow:2px 2px 0 var(--ink); }
@@ -127,7 +127,7 @@ a.bar-note:hover span,a.bar-note:focus-visible span { color:var(--gold); }
   .final-marquee { text-align:center; margin:auto; }
   .final-marquee p { margin-bottom:12px; }
   .final-marquee h2 { font-size:clamp(52px,16vw,74px); }
-  .final-marquee strong { margin-top:12px; font-size:18px; }
+  .final-marquee strong { margin:14px auto 0; padding:10px 12px 11px; font-size:clamp(20px,5.5vw,24px); line-height:1.28; }
   .final-sign { width:min(360px,82vw); margin:0 auto; }
   .final-character-row { justify-content:center; gap:10px; }
   .final-score { margin-top:12px; }
@@ -158,7 +158,7 @@ a.bar-note:hover span,a.bar-note:focus-visible span { color:var(--gold); }
 @media (max-height:650px) and (min-width:761px) {
   .final-layer { padding-top:20px; padding-bottom:20px; }
   .final-marquee h2 { font-size:64px; }
-  .final-marquee strong { margin-top:12px; }
+  .final-marquee strong { margin-top:14px; }
   .bar-note { min-height:70px; padding:10px 12px; }
   .enter-button { min-height:46px; }
 }
@@ -181,7 +181,7 @@ a.bar-note:hover span,a.bar-note:focus-visible span { color:var(--gold); }
   .final-layer { grid-template-columns:290px minmax(0,500px); grid-template-rows:1fr auto; gap:8px 12px; padding:10px 12px 12px; }
   .final-marquee { width:100%; }
   .final-sign { width:min(100%,290px); }
-  .final-marquee strong { margin-top:8px; font-size:18px; }
+  .final-marquee strong { margin-top:8px; padding:7px 9px 8px; font-size:16px; line-height:1.2; box-shadow:4px 4px 0 var(--ink); }
   .final-character-row { gap:8px; }
   .final-score { margin-top:7px; padding:8px 10px 9px; }
   .score-bottles { min-height:38px; }
