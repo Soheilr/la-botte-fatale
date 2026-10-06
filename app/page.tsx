@@ -393,7 +393,7 @@ export default function Home() {
 
   const handleGamePointer = (event: React.PointerEvent<HTMLDivElement>) => { if (!event.isPrimary || (event.target as HTMLElement).closest('a, button')) return; event.preventDefault(); jump(); };
   const handleJumpPointer = (event: React.PointerEvent<HTMLButtonElement>) => { if (!event.isPrimary) return; event.preventDefault(); event.stopPropagation(); jump(); };
-  const mapsUrl = 'https://www.google.com/maps/search/?api=1&query=Via+Giuseppe+Giacosa+11+20127+Milano+MI';
+  const mapsUrl = 'https://maps.app.goo.gl/T1Uby1Sc12mruaTc8';
 
   return (
     <main className={`game-shell phase-${phase} ${paused ? 'is-paused' : ''}`}>
